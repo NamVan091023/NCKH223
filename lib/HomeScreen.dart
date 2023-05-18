@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+// ignore: depend_on_referenced_packages
 import 'package:flutter_pytorch/pigeon.dart';
 import 'package:flutter_pytorch/flutter_pytorch.dart';
 import 'package:object_detection/LoaderState.dart';
+
+import 'package:object_detection/Navigation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _imagePrediction;
   List? _prediction;
   File? _image;
-  ImagePicker _picker = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
   bool objectDetection = false;
   List<ResultObjectDetection?> objDetect = [];
   bool firststate = false;
@@ -32,10 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future loadModel() async {
-    String pathObjectDetectionModel = "assets/models/yolov5s.torchscript";
+    String pathObjectDetectionModel = "assets/models/best.torchscript";
     try {
       _objectModel = await FlutterPytorch.loadObjectDetectionModel(
-          pathObjectDetectionModel, 80, 640, 640,
+          pathObjectDetectionModel, 9, 640, 640,
           labelPath: "assets/labels/labels.txt");
     } catch (e) {
       if (e is PlatformException) {
@@ -68,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await File(image!.path).readAsBytes(),
         minimumScore: 0.1,
         IOUThershold: 0.3);
-    objDetect.forEach((element) {
+    for (var element in objDetect) {
       print({
         "score": element?.score,
         "className": element?.className,
@@ -82,8 +84,8 @@ class _HomeScreenState extends State<HomeScreen> {
           "bottom": element?.rect.bottom,
         },
       });
-    });
-    scheduleTimeout(5 * 1000);
+    }
+    scheduleTimeout(5 * 500);
     setState(() {
       _image = File(image.path);
     });
@@ -91,49 +93,70 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("OBJECT DETECTOR APP")),
-      backgroundColor: Colors.white,
-      body: Center(
-          child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          //Image with Detections....
+    return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            //Image with Detections....
 
-          !firststate
-              ? !message ? LoaderState() : Text("Select the Camera to Begin Detections")
-              : Expanded(
-                  child: Container(
-                      child:
-                          _objectModel.renderBoxesOnImage(_image!, objDetect)),
-                ),
+            !firststate
+                ? !message
+                    ? const LoaderState()
+                    : const Text("Select the Camera to Begin Detections")
+                : Expanded(
+                    child: Container(
+                        child: _objectModel.renderBoxesOnImage(
+                            _image!, objDetect)),
+                  ),
 
-          // !firststate
-          //     ? LoaderState()
-          //     : Expanded(
-          //         child: Container(
-          //             height: 150,
-          //             width: 300,
-          //             child: objDetect.isEmpty
-          //                 ? Text("hello")
-          //                 : _objectModel.renderBoxesOnImage(
-          //                     _image!, objDetect)),
-          //       ),
-          Center(
-            child: Visibility(
-              visible: _imagePrediction != null,
-              child: Text("$_imagePrediction"),
+            // !firststate
+            //     ? LoaderState()
+            //     : Expanded(
+            //         child: Container(
+            //             height: 150,
+            //             width: 300,
+            //             child: objDetect.isEmpty
+            //                 ? Text("hello")
+            //                 : _objectModel.renderBoxesOnImage(
+            //                     _image!, objDetect)),
+            //       ),
+            Center(
+              child: Visibility(
+                visible: _imagePrediction != null,
+                child: Text("$_imagePrediction"),
+              ),
             ),
-          ),
-          //Button to click pic
-          ElevatedButton(
-            onPressed: () {
-              runObjectDetection();
-            },
-            child: const Icon(Icons.camera),
-          )
-        ],
-      )),
-    );
+            //Button to click pic
+            ElevatedButton(
+              onPressed: () {
+                runObjectDetection();
+              },
+              child: const Icon(Icons.camera),
+            )
+          ],
+        ),
+      );
+
+      //    bottomNavigationBar: BottomAppBar(
+      //     color: Colors.redAccent,
+
+      // child:
+      //  BottomNavigationBar(
+
+      //    type: BottomNavigationBarType.shifting,
+
+      //   items: const [BottomNavigationBarItem(
+      //       icon: Icon(Icons.home),
+      //       label: 'Home',
+      //   ),
+      //   BottomNavigationBarItem(
+
+      //       icon: Icon(Icons.explore_sharp),
+      //       label: 'Guide',
+
+      //     ),
+      //     ],
+      //  ),
+      // ),
   }
 }
